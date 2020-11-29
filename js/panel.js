@@ -25,6 +25,7 @@
 		fixHTMLIndentationInput = $('#fix-html-indentation'),
 		includeAncestors = $('#include-ancestors'),
 		combineCssIntoHTML = $('#combine-css-to-html'),
+		retainClasses = $('#retain-classes'),
 		idPrefix = $('#id-prefix'),
 
 		htmlTextarea = $('#html'),
@@ -72,6 +73,7 @@
 	combineSameRulesInput.on('change', persistSettingAndProcessSnapshot);
 	includeAncestors.on('change', persistSettingAndProcessSnapshot);
 	combineCssIntoHTML.on('change', persistSettingAndProcessSnapshot);
+	retainClasses.on('change', persistSettingAndProcessSnapshot);
 
 	createButton.on('click', makeSnapshot);
 
@@ -180,11 +182,37 @@
 
 		var styles = lastSnapshot.css,
 			html = lastSnapshot.html,
-			prefix = "";
+			prefix = "",
+			htmlCleanOptions = {
+				removeAttrs: ['class'],
+				allowedAttributes: [
+					['id'],
+					['placeholder', ['input', 'textarea']],
+					['disabled', ['input', 'textarea', 'select', 'option', 'button']],
+					['value', ['input', 'button']],
+					['readonly', ['input', 'textarea', 'option']],
+					['label', ['option']],
+					['selected', ['option']],
+					['checked', ['input']]
+				],
+				format: true,
+				replace: [],
+				replaceStyles: [],
+				allowComments: true
+			};
 
 		if (includeAncestors.is(':checked')) {
 			styles = lastSnapshot.ancestorCss.concat(styles);
 			html = lastSnapshot.leadingAncestorHtml + html + lastSnapshot.trailingAncestorHtml;
+		}
+
+		if (retainClasses.is(':checked')) {
+			for (var index in htmlCleanOptions.removeAttrs) {
+				var value = htmlCleanOptions.removeAttrs[index];
+				if (value === 'class') {
+					htmlCleanOptions.removeAttrs.splice(index, 1);
+				}
+			}
 		}
 
 		loader.addClass('processing');
@@ -204,23 +232,7 @@
 		}
 
 		if (fixHTMLIndentationInput.is(':checked')) {
-			html = $.htmlClean(html, {
-				removeAttrs: ['class'],
-				allowedAttributes: [
-					['id'],
-					['placeholder', ['input', 'textarea']],
-					['disabled', ['input', 'textarea', 'select', 'option', 'button']],
-					['value', ['input', 'button']],
-					['readonly', ['input', 'textarea', 'option']],
-					['label', ['option']],
-					['selected', ['option']],
-					['checked', ['input']]
-				],
-				format: true,
-				replace: [],
-				replaceStyles: [],
-				allowComments: true
-			});
+			html = $.htmlClean(html, htmlCleanOptions);
 		}
 
 		if (combineCssIntoHTML.is(':checked')) {
